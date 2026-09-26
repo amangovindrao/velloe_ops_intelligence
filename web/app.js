@@ -1298,7 +1298,7 @@ ROUTES.settings = async () => {
       </div>
       <div class="stack">
         <div class="card"><div class="card-h"><h2>Appearance</h2></div><div class="card-b">
-          <div class="seg" role="group" aria-label="Theme"><button data-theme="light" aria-pressed="${theme === "light"}">☀ Light</button><button data-theme="dark" aria-pressed="${theme === "dark"}">☾ Dark</button></div>
+          <div class="seg" role="group" aria-label="Theme"><button data-theme-choice="light" aria-pressed="${theme === "light"}">☀ Light</button><button data-theme-choice="dark" aria-pressed="${theme === "dark"}">☾ Dark</button></div>
           <div class="muted small" style="margin-top:8px">Saved in this browser.</div></div></div>
         <div class="card"><div class="card-h"><h2>Human approval</h2></div><div class="card-b small">
           <div class="set-row"><div class="k">Approval gate</div><div class="v">always on</div><div class="d">Operational actions wait for a person</div></div>
@@ -1313,10 +1313,11 @@ ROUTES.settings = async () => {
           <button class="btn danger" id="reset-btn">Delete all stored runs</button></div></div>
       </div>
     </div>`;
-  $$("[data-theme]").forEach((b) => (b.onclick = () => {
-    document.documentElement.dataset.theme = b.dataset.theme;
-    localStorage.setItem("velloe-theme", b.dataset.theme);
-    $$("[data-theme]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  // data-theme-choice, not data-theme: [data-theme="dark"] is the page-theme CSS selector and would restyle the button
+  $$("[data-theme-choice]").forEach((b) => (b.onclick = () => {
+    document.documentElement.dataset.theme = b.dataset.themeChoice;
+    localStorage.setItem("velloe-theme", b.dataset.themeChoice);
+    $$("[data-theme-choice]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   }));
   const test = $("#llm-test");
   if (test) test.onclick = async () => {
