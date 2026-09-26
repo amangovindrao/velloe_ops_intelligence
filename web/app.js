@@ -1243,28 +1243,95 @@ ROUTES.analytics = async () => {
 };
 
 // ---------------------------------------------------------------- settings
+// Plain-language labels for every runtime limit; unknown keys still render with their raw name.
+const LIMIT_INFO = {
+  max_workflow_steps: ["Workflow", "Max workflow steps", "Audit entries allowed before the run stops safely"],
+  max_steps: ["Workflow", "Max steps", "Step budget per run"],
+  execution_timeout: ["Workflow", "Execution timeout", "Wall-clock limit for one investigation", "s"],
+  max_seconds: ["Workflow", "Max run time", "Hard wall-clock budget", "s"],
+  max_llm_calls: ["Workflow", "Max LLM calls", "Real model calls allowed per run"],
+  max_guardian_revisions: ["Verification", "Guardian revisions", "Bounded re-analysis cycles after a rejection"],
+  max_revisions: ["Verification", "Max revisions", "Revision cycles before Needs Review"],
+  max_tool_retries: ["Scout reliability", "Tool retries", "Retries before switching to the fallback source"],
+  scout_attempts: ["Scout reliability", "Attempts per source", "First try + retries"],
+  scout_timeout_s: ["Scout reliability", "Tool timeout", "Deadline for one data-source call", "s"],
+  thermal_threshold_c: ["Analysis", "Thermal threshold", "Inlet temperature treated as an anomaly", "°C"],
+  demo_step_delay_s: ["Demo", "Step delay", "Pause between audit steps so viewers can follow", "s"],
+};
+
+function limitRows(limits) {
+  const groups = {};
+  Object.entries(limits || {}).forEach(([k, v]) => {
+    const [g, label, desc, unit] = LIMIT_INFO[k] || ["Other", k.replace(/_/g, " "), "", ""];
+    (groups[g] = groups[g] || []).push(`<div class="set-row"><div class="k">${h(label)}</div><div class="v">${h(v)}${unit ? " " + h(unit) : ""}</div><div class="d">${h(desc)}</div></div>`);
+  });
+  return Object.entries(groups).map(([g, rows]) => `<div class="set-group">${h(g)}</div>${rows.join("")}`).join("");
+}
+
 ROUTES.settings = async () => {
   const s = await api("/api/settings");
-  const theme = document.documentElement.dataset.theme;
-  view().innerHTML = `<div class="page-head"><div><h1>Settings</h1><p>Runtime configuration (set via .env). Read-only in the dashboard.</p></div></div>
-    <div class="grid g-2e">
-      <div class="card"><div class="card-h"><h2>Appearance</h2></div><div class="card-b"><div class="chips">
-        <button class="chip" data-theme="light" aria-pressed="${theme === "light"}">Light</button><button class="chip" data-theme="dark" aria-pressed="${theme === "dark"}">Dark</button></div></div></div>
-      <div class="card"><div class="card-h"><h2>LLM provider</h2></div><div class="card-b"><b>${h(s.provider)}</b>
-        <div class="muted small" style="margin-top:6px">mock = deterministic demo mode. Configure OmniRoute, Ollama, LM Studio or Anthropic in .env.</div></div></div>
-      <div class="card"><div class="card-h"><h2>Orchestrator limits</h2></div><div class="card-b"><dl class="kv">
-        ${Object.entries(s.limits).map(([k, v]) => `<dt>${h(k.replace(/_/g, " "))}</dt><dd class="mono">${h(v)}</dd>`).join("")}</dl></div></div>
-      <div class="card"><div class="card-h"><h2>Demo data</h2></div><div class="card-b small">
-        <p style="margin-top:0">Server bound to <span class="mono">${h(s.bind)}</span>. No authentication in this prototype. Keep it on localhost.</p>
-        <button class="btn danger" id="reset-btn">Delete all stored runs</button></div></div>
+  const theme = document.documentElement.dataset.theme || "light";
+  const live = s.provider !== "mock";
+  const chain = s.chain || [];
+  const db = s.database || {};
+  const primary = chain[0];
+  view().innerHTML = `<div class="page-head"><div><h1>Settings</h1><p>Runtime configuration. Values come from <span class="mono">.env</span>; API keys are never shown here.</p></div></div>
+    <div class="set-strip">
+      <div class="card kpi"><div class="label">AI mode</div><div class="value">${live ? '<span class="badge b-ok">● Live models</span>' : '<span class="badge">Deterministic (mock)</span>'}</div><div class="sub">${live ? `${h(chain.length)} provider${chain.length === 1 ? "" : "s"} in chain` : "No model calls are made"}</div></div>
+      <div class="card kpi"><div class="label">Primary model</div><div class="value mono">${h(primary ? primary.label : "–")}</div><div class="sub">${primary && primary.cooling_down_s ? `Skipped for ${h(primary.cooling_down_s)} s after a failure` : "Tried first"}</div></div>
+      <div class="card kpi"><div class="label">Database</div><div class="value mono">${h(db.path || "–")}</div><div class="sub">${db.rows ? `${h(db.rows.investigations)} runs · ${h(db.rows.audit_logs)} audit entries` : h(db.error || "")}</div></div>
+      <div class="card kpi"><div class="label">Server</div><div class="value mono">${h(s.bind)}</div><div class="sub">Local only · no authentication</div></div>
+    </div>
+    <div class="set-grid">
+      <div class="stack">
+        <div class="card"><div class="card-h"><h2>AI models</h2><span class="right muted small">first success wins</span></div><div class="card-b">
+          ${chain.length ? chain.map((c, i) => `<div class="chain-item"><span class="n">${i + 1}</span><div><div class="lbl">${h(c.label)}</div><div class="muted small">${h(c.role === "primary" ? "Primary" : "Fallback")}</div></div>
+            <span class="badge ${c.cooling_down_s ? "b-warn" : "b-ok"}">${c.cooling_down_s ? `cooling down ${h(c.cooling_down_s)} s` : "ready"}</span></div>`).join("")
+            : empty("No model configured.", " Set LLM_BASE_URL / LLM_MODEL (and optional LLM_FALLBACK_*) in .env.")}
+          <div class="chain-item" style="margin-top:8px"><span class="n">${chain.length + 1}</span><div><div class="lbl">deterministic fallback</div><div class="muted small">Built-in answers if every model fails</div></div><span class="badge">always</span></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap">
+            <button class="btn primary" id="llm-test" ${live ? "" : "disabled"}>Test connection</button>
+            <span class="muted small">Sends one tiny request through the chain.</span></div>
+          <div class="test-result" id="llm-result" aria-live="polite"></div>
+        </div></div>
+        <div class="card"><div class="card-h"><h2>Safety & execution limits</h2><span class="right muted small">read-only</span></div><div class="card-b">${limitRows(s.limits)}</div></div>
+      </div>
+      <div class="stack">
+        <div class="card"><div class="card-h"><h2>Appearance</h2></div><div class="card-b">
+          <div class="seg" role="group" aria-label="Theme"><button data-theme="light" aria-pressed="${theme === "light"}">☀ Light</button><button data-theme="dark" aria-pressed="${theme === "dark"}">☾ Dark</button></div>
+          <div class="muted small" style="margin-top:8px">Saved in this browser.</div></div></div>
+        <div class="card"><div class="card-h"><h2>Human approval</h2></div><div class="card-b small">
+          <div class="set-row"><div class="k">Approval gate</div><div class="v">always on</div><div class="d">Operational actions wait for a person</div></div>
+          <div class="set-row"><div class="k">Tickets</div><div class="v">simulated</div><div class="d">Approval creates a local MT-xxxx record only</div></div>
+          <div class="set-row"><div class="k">Reject reason</div><div class="v">required</div><div class="d">Every rejection is audited with its rationale</div></div></div></div>
+        <div class="card"><div class="card-h"><h2>Database</h2></div><div class="card-b small">
+          ${db.rows ? Object.entries(db.rows).map(([k, v]) => `<div class="set-row"><div class="k">${h(k.replace(/_/g, " "))}</div><div class="v">${h(v)}</div><div class="d"></div></div>`).join("")
+            : `<div class="muted">${h(db.error || "Unavailable")}</div>`}
+          ${db.journal_mode ? `<div class="muted" style="margin-top:8px">SQLite · ${h(db.journal_mode)} · schema v${h(db.schema_version)}</div>` : ""}</div></div>
+        <div class="card danger-zone"><div class="card-h"><h2>Danger zone</h2></div><div class="card-b small">
+          <p style="margin-top:0">Deletes every stored investigation, action, approval and audit entry in <span class="mono">${h(db.path || "the local database")}</span>. Cannot be undone.</p>
+          <button class="btn danger" id="reset-btn">Delete all stored runs</button></div></div>
+      </div>
     </div>`;
   $$("[data-theme]").forEach((b) => (b.onclick = () => {
     document.documentElement.dataset.theme = b.dataset.theme;
     localStorage.setItem("velloe-theme", b.dataset.theme);
-    ROUTES.settings();
+    $$("[data-theme]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   }));
+  const test = $("#llm-test");
+  if (test) test.onclick = async () => {
+    test.disabled = true;
+    $("#llm-result").innerHTML = '<span class="spinner"></span> Testing…';
+    try {
+      const r = await api("/api/llm/test", { method: "POST", body: {} });
+      $("#llm-result").innerHTML = r.live
+        ? `<span class="badge b-ok">✓ Working</span> Answered by <b class="mono">${h(r.provider)}</b> in ${h(r.seconds)} s.${r.skipped.length ? `<div class="muted small" style="margin-top:4px">Skipped: ${r.skipped.map(h).join("; ")}</div>` : ""}`
+        : `<span class="badge b-err">✗ No model answered</span> ${h(r.error || "Using the deterministic fallback.")}`;
+    } catch (e) { $("#llm-result").innerHTML = `<span class="badge b-err">Error</span> ${h(e.message)}`; }
+    test.disabled = false;
+  };
   $("#reset-btn").onclick = async () => {
     if (!confirm("Delete all stored investigations, actions and audit logs from the local database?")) return;
-    try { await api("/api/reset", { method: "POST", body: { confirm: "RESET" } }); toast("Local demo data cleared"); refreshShell(); } catch (e) { toast(e.message); }
+    try { await api("/api/reset", { method: "POST", body: { confirm: "RESET" } }); toast("Local demo data cleared"); refreshShell(); ROUTES.settings(); } catch (e) { toast(e.message); }
   };
 };
