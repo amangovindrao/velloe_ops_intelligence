@@ -720,7 +720,7 @@ ROUTES.investigation = async (id) => {
         <div style="display:flex;gap:8px"><a class="btn" href="#/audit/${inv.id}">Audit trail</a><button class="btn" data-more ${moreDisabled(inv)}>Request More Evidence</button></div></div>
       <div class="card" style="margin-bottom:16px"><div class="pipeline">${stages(inv).map((s) => `<div class="stage ${s.cls}">
         <div class="n">${h(s.n)}</div><div class="s">${s.cls === "active" ? '<span class="spinner" style="width:12px;height:12px"></span>' : ""}${h(s.name)}</div><div class="d">${h(s.d)}</div></div>`).join("")}</div></div>
-      ${awaiting(inv) ? `<div class="approval-callout" role="alert"><b>⏳ Your approval is needed.</b> Guardian verified this result; ${plural(inv.actions.filter((a) => a.status === "Awaiting Approval").length, "action")} wait for a human decision.</div>${humanDecision(inv)}` : ""}
+      ${awaiting(inv) ? `<div class="approval-callout" role="alert"><b>⏳ Your approval is needed.</b> Guardian verified this result; ${((n) => `${plural(n, "action")} ${n === 1 ? "waits" : "wait"}`)(inv.actions.filter((a) => a.status === "Awaiting Approval").length)} for a human decision.</div>${humanDecision(inv)}` : ""}
       ${keyFacts(inv)}
       ${recoveryBanner(inv)}
       ${inv.status === "Error" || inv.status === "Stopped" ? `<div class="recovery bad" style="margin-bottom:16px"><h3>Run ${h(inv.status.toLowerCase())}</h3>${h(inv.error)}</div>` : ""}
