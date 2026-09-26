@@ -461,8 +461,28 @@ def benchmarks():
             for r in store.query("SELECT * FROM benchmark_runs ORDER BY id DESC LIMIT 20")]
 
 
+def llm_test():
+    """One tiny request through the real provider chain. Returns which provider answered and how fast
+    (never keys). In mock mode nothing is sent."""
+    import time as _time
+    from llm_client import call_llm
+    t0 = _time.time()
+    text, meta = call_llm("You are a connection test. Answer with one word.", "Reply with exactly: OK",
+                          fallback="(deterministic fallback)", max_tokens=10)
+    return {"provider": meta.get("provider"), "live": not meta.get("mock"), "seconds": round(_time.time() - t0, 2),
+            "reply": text[:40], "skipped": meta.get("fallback_from", []), "error": meta.get("error")}
+
+
 def settings():
-    return {"provider": active_provider(), "limits": {
+    from llm_client import describe_chain
+    try:
+        db = store.info()
+        db = {"path": os.path.relpath(db["path"], ROOT), "journal_mode": db["journal_mode"],
+              "schema_version": db["schema_version"],
+              "rows": {k: db["tables"].get(k, 0) for k in ("investigations", "actions", "approvals", "audit_logs")}}
+    except Exception as e:  # settings page must still load
+        db = {"error": str(e)}
+    return {"provider": active_provider(), "chain": describe_chain(), "database": db, "limits": {
         "max_workflow_steps": MAX_WORKFLOW_STEPS, "execution_timeout": EXECUTION_TIMEOUT,
         "max_guardian_revisions": MAX_GUARDIAN_REVISIONS, "max_tool_retries": MAX_TOOL_RETRIES,
         "max_steps": MAX_STEPS, "max_seconds": MAX_SECONDS, "max_llm_calls": MAX_LLM_CALLS,
@@ -599,6 +619,8 @@ class Handler(BaseHTTPRequestHandler):
                 note = _text(body.get("note"))[:300]
                 a = complete_action(aid) if verb == "complete" else decide_action(aid, verb, note=note)
                 return self._send(200, _action_row(a))
+            if path == "/api/llm/test":
+                return self._send(200, llm_test())
             if path == "/api/reset":
                 if body.get("confirm") != "RESET":
                     return self._send(400, {"error": "confirmation required"})

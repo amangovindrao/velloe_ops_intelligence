@@ -287,9 +287,42 @@ mark.hl.warn { background: var(--warn-soft); color: var(--warn); }
 .di-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .done-note { color: var(--ok); font-weight: 600; margin-top: 10px; }
 .rej-note { color: var(--err); font-weight: 600; margin-top: 10px; }
-.full-details { margin-top: 4px; }
-.full-details > summary { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font-weight: 600; color: var(--text); }
-.full-details[open] > summary { background: var(--surface-2); }
+.details-toggle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; text-align: left; cursor: pointer;
+  padding: 12px 16px; margin: 4px 0 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+  font-weight: 600; color: var(--text); }
+.details-toggle:hover { background: var(--surface-2); }
+.details-toggle .chev { display: inline-block; transition: transform .15s; color: var(--muted); }
+.details-toggle[aria-expanded="true"] { background: var(--surface-2); }
+.details-toggle[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.full-details[hidden] { display: none; }
+.approval-callout { border: 1px solid var(--warn); background: var(--warn-soft); color: var(--text); border-radius: var(--radius);
+  padding: 10px 16px; margin-bottom: 12px; font-size: 13.5px; }
+
+/* ---------- settings ---------- */
+.set-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.set-strip .kpi .value { font-size: 16px; margin-top: 6px; word-break: break-word; }
+.set-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 16px; align-items: start; }
+.set-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.set-row:last-child { border-bottom: 0; }
+.set-row .k { font-weight: 600; font-size: 13px; }
+.set-row .d { grid-column: 1; color: var(--muted); font-size: 12px; }
+.set-row .v { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-family: var(--mono); font-size: 12.5px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; white-space: nowrap; }
+.set-group { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 2px; }
+.set-group:first-child { margin-top: 0; }
+.chain-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); }
+.chain-item + .chain-item { margin-top: 8px; }
+.chain-item .n { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; }
+.chain-item .lbl { font-family: var(--mono); font-size: 12.5px; }
+.chain-item .badge { margin-left: auto; }
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 7px 16px; cursor: pointer; font-weight: 500; }
+.seg button + button { border-left: 1px solid var(--border-strong); }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--surface); }
+.danger-zone { border-color: var(--err); }
+.danger-zone .card-h h2 { color: var(--err); }
+.test-result { margin-top: 10px; font-size: 13px; }
+@media (max-width: 1180px) { .set-grid { grid-template-columns: 1fr; } .set-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 1180px) { .key-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .agent-grid { grid-template-columns: 1fr; } .ps-row { grid-template-columns: 1fr; gap: 2px; } .key-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 1180px) { .ws-grid { grid-template-columns: 1fr; } .filter-grid { grid-template-columns: repeat(3, minmax(150px, 1fr)); } }
