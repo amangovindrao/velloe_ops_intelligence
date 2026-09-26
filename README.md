@@ -9,7 +9,32 @@ This is a **hackathon prototype**. It is not an official Velloe product.
 
 ---
 
+## Value & impact
+
+Operations teams lose hours correlating incidents, telemetry, maintenance logs, and external
+conditions by hand — and under pressure it is easy to act on a coincidence instead of a cause.
+Velloe Ops Intelligence is built to make that first hour of an investigation faster and safer:
+
+- **Faster root-cause investigation.** Four specialized agents plan, collect, analyze, and verify
+  in one pass, turning scattered signals into a ranked set of hypotheses with cited evidence.
+- **Trustworthy by design.** Every recommendation is checked by a Guardian agent for over-claiming
+  and weak evidence, and any operational change is gated behind explicit human approval — nothing
+  acts on its own.
+- **Resilient to messy reality.** When a data source is slow, errors out, or returns malformed data,
+  the system retries, falls back to a cached source, and clearly reports the gap instead of guessing.
+- **Turns incidents into improvement.** Beyond the immediate fix, the Action & Opportunity engine
+  surfaces recurring operational risks and concrete automation opportunities, with priorities.
+- **Auditable and explainable.** Every step — plans, tool calls, failures, verdicts, approvals — is
+  logged with a plain-language "why", so a reviewer can see exactly what was decided and on what basis.
+
+The prototype runs entirely on simulated operational data (plus real public weather), so the workflow,
+fault-tolerance, and human-in-the-loop safety can be demonstrated end to end without any live systems.
+
+---
+
 ## Contents
+
+- [Value & impact](#value--impact)
 
 1. [What is this project?](#1-what-is-this-project)
 2. [Tech we used](#2-tech-we-used)
